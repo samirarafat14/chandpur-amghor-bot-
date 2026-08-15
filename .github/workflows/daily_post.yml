@@ -2,7 +2,7 @@ name: Daily Mango Post
 
 on:
   schedule:
-    - cron: "0 4 * * *"
+    - cron: "0 4,9,15 * * *"
   workflow_dispatch:
 
 jobs:
