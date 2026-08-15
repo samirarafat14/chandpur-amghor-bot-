@@ -2,9 +2,8 @@ name: Daily Mango Post
 
 on:
   schedule:
-    # Runs everyday at 4:00 AM UTC (10:00 AM Bangladesh Time)
-    - cron: '0 4 * * *'
-  workflow_dispatch: # Allows manual trigger button
+    - cron: "0 4 * * *"
+  workflow_dispatch:
 
 jobs:
   run-poster:
@@ -16,7 +15,7 @@ jobs:
       - name: Set Up Python
         uses: setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install Dependencies
         run: |
