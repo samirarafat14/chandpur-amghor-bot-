@@ -71,13 +71,13 @@ def generate_multi_theme_content():
     return caption, img_prompt
 
 def generate_image(prompt):
-    print(f"🎨 Generating visual for theme prompt: {prompt}")
+    print(f"🎨 Generating visual for prompt: {prompt}")
     quality_enhancers = "photorealistic, commercial food photography, 8k, sharp focus, vibrant natural colors, cinematic lighting, no watermark"
     full_prompt = f"{prompt}, {quality_enhancers}"
     encoded = requests.utils.quote(full_prompt)
     seed = random.randint(1000, 999999)
     
-    img_url = f"https://image.pollinations.ai/prompt/{encoded}?width=1080&height=1920&model=flux&nologo=true&seed={seed}"
+    img_url = f"https://image.pollinations.ai/prompt/{encoded}?width=1080&height=1350&model=flux&nologo=true&seed={seed}"
     res = requests.get(img_url, timeout=90)
     
     path = "mango_post.jpg"
@@ -97,59 +97,48 @@ def post_to_facebook_feed(image_path, caption):
         response = requests.post(url, data=payload, files=files, timeout=45)
         
     result = response.json()
-    if "id" in result:
-        print(f"🎉 Feed Post successfully published! ID: {result['id']}")
+    photo_id = result.get("id")
+    if photo_id:
+        print(f"🎉 Feed Post successfully published! Photo ID: {photo_id}")
+        return photo_id
     else:
-        print(f"⚠️ Feed response: {json.dumps(result, indent=2)}")
+        print(f"❌ Error publishing feed post: {json.dumps(result, indent=2)}")
+        return None
 
-def post_to_facebook_story(image_path):
-    print("📱 Publishing photo to Facebook Page Story via Upload Session...")
-    
-    # Step 1: Initialize Story Upload Session
-    session_url = f"https://graph.facebook.com/v19.0/{FB_PAGE_ID}/photo_stories"
-    params = {"access_token": FB_PAGE_ACCESS_TOKEN}
-    
-    try:
-        session_res = requests.post(session_url, params=params, timeout=30)
-        session_data = session_res.json()
-        
-        upload_url = session_data.get("upload_url")
-        if not upload_url:
-            print(f"⚠️ Could not start Story session: {session_data}")
-            return
+def post_to_facebook_story(photo_id):
+    if not photo_id:
+        print("⚠️ No valid photo ID found to create story.")
+        return
 
-        # Step 2: Upload Binary Image to Session URL
-        with open(image_path, "rb") as img_file:
-            img_bytes = img_file.read()
-            
-        headers = {
-            "Authorization": f"OAuth {FB_PAGE_ACCESS_TOKEN}",
-            "file_offset": "0"
-        }
-        
-        upload_res = requests.post(upload_url, headers=headers, data=img_bytes, timeout=45)
-        upload_data = upload_res.json()
-        
-        if upload_data.get("success"):
-            print(f"🎉 Story successfully published!")
-        else:
-            print(f"⚠️ Story upload response: {json.dumps(upload_data, indent=2)}")
-            
-    except Exception as e:
-        print(f"⚠️ Story posting exception: {e}")
+    print(f"📱 Publishing Photo ID {photo_id} to Facebook Page Story...")
+    story_url = f"https://graph.facebook.com/v19.0/{FB_PAGE_ID}/photo_stories"
+    payload = {
+        "photo_id": photo_id,
+        "access_token": FB_PAGE_ACCESS_TOKEN
+    }
+    
+    res = requests.post(story_url, data=payload, timeout=30)
+    result = res.json()
+    
+    if result.get("id") or result.get("post_id") or result.get("success"):
+        print(f"🎉 Story successfully published! Result: {result}")
+    else:
+        print(f"⚠️ Story response: {json.dumps(result, indent=2)}")
 
 def main():
     if not FB_PAGE_ID or not FB_PAGE_ACCESS_TOKEN:
         print("❌ Missing credentials.")
         return
+        
     caption, img_prompt = generate_multi_theme_content()
     img_file = generate_image(img_prompt)
     
-    # 1. Publish to Feed (Post)
-    post_to_facebook_feed(img_file, caption)
+    # 1. Post to Feed (Returns the created Photo ID)
+    photo_id = post_to_facebook_feed(img_file, caption)
     
-    # 2. Publish to Page Story
-    post_to_facebook_story(img_file)
+    # 2. Automatically post the exact same image to Story
+    if photo_id:
+        post_to_facebook_story(photo_id)
 
 if __name__ == "__main__":
     main()
