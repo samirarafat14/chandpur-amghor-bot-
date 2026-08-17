@@ -7,7 +7,6 @@ import requests
 FB_PAGE_ID = os.environ.get("FB_PAGE_ID")
 FB_PAGE_ACCESS_TOKEN = os.environ.get("FB_PAGE_ACCESS_TOKEN")
 
-# Different campaign angles to rotate automatically
 CONTENT_THEMES = [
     {
         "type": "emotional_family",
@@ -36,7 +35,6 @@ CONTENT_THEMES = [
 ]
 
 def generate_multi_theme_content():
-    # Randomly select a different theme on every run
     selected_theme = random.choice(CONTENT_THEMES)
     print(f"🎯 Selected Post Theme: {selected_theme['type']}")
     
@@ -87,8 +85,8 @@ def generate_image(prompt):
         f.write(res.content)
     return path
 
-def post_to_facebook(image_path, caption):
-    print("🚀 Publishing diverse post to Facebook...")
+def post_to_facebook_feed(image_path, caption):
+    print("🚀 Publishing post to Facebook Page Feed...")
     url = f"https://graph.facebook.com/v19.0/{FB_PAGE_ID}/photos"
     with open(image_path, "rb") as img:
         payload = {
@@ -100,10 +98,25 @@ def post_to_facebook(image_path, caption):
         
     result = response.json()
     if "id" in result:
-        print(f"🎉 Post successfully published! ID: {result['id']}")
+        print(f"🎉 Feed Post successfully published! ID: {result['id']}")
     else:
-        print(f"❌ Error: {json.dumps(result, indent=2)}")
-        raise Exception("Publishing failed")
+        print(f"⚠️ Feed publishing response: {json.dumps(result, indent=2)}")
+
+def post_to_facebook_story(image_path):
+    print("📱 Publishing photo to Facebook Page Story...")
+    url = f"https://graph.facebook.com/v19.0/{FB_PAGE_ID}/photo_stories"
+    with open(image_path, "rb") as img:
+        payload = {
+            "access_token": FB_PAGE_ACCESS_TOKEN
+        }
+        files = {"source": img}
+        response = requests.post(url, data=payload, files=files, timeout=45)
+        
+    result = response.json()
+    if "id" in result or "post_id" in result:
+        print(f"🎉 Story successfully published! ID: {result.get('id', result.get('post_id'))}")
+    else:
+        print(f"⚠️ Story publishing response (check page story permissions if not enabled): {json.dumps(result, indent=2)}")
 
 def main():
     if not FB_PAGE_ID or not FB_PAGE_ACCESS_TOKEN:
@@ -111,7 +124,12 @@ def main():
         return
     caption, img_prompt = generate_multi_theme_content()
     img_file = generate_image(img_prompt)
-    post_to_facebook(img_file, caption)
+    
+    # 1. Post to Feed (Image + Caption)
+    post_to_facebook_feed(img_file, caption)
+    
+    # 2. Post to Page Story (Full visual format)
+    post_to_facebook_story(img_file)
 
 if __name__ == "__main__":
     main()
