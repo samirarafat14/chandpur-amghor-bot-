@@ -4,114 +4,114 @@ import json
 import random
 import requests
 
-# Facebook Credentials from GitHub Secrets
 FB_PAGE_ID = os.environ.get("FB_PAGE_ID")
 FB_PAGE_ACCESS_TOKEN = os.environ.get("FB_PAGE_ACCESS_TOKEN")
 
-# Ultra-realistic commercial photography prompts for mangoes
-PREMIUM_IMAGE_PROMPTS = [
-    "commercial food photography of freshly harvested ripe golden Himsagar mangoes with water droplets in a rustic handmade bamboo basket, morning sunbeam, depth of field, 8k resolution, authentic Bangladeshi orchard",
-    "close up shot of a perfectly sliced juicy yellow mango on a clean wooden cutting board, vivid natural colors, appetizing texture, soft studio lighting, high-end food magazine style",
-    "a pile of fresh organic Amrapali and Lengra mangoes on green leaves, natural daylight, photorealistic, sharp focus, vibrant golden-yellow and green hues",
-    "freshly picked organic mangoes hanging on a lush tree branch with leaves and soft golden hour sunlight, hyperrealistic, 4k macro shot"
+# Different campaign angles to rotate automatically
+CONTENT_THEMES = [
+    {
+        "type": "emotional_family",
+        "guidance": "Write an emotional storytelling post in Bengali about sending mangoes as a heartfelt gift to mothers, fathers, or family back home from Probashi/expats. Mention handwritten message card. Tone: Loving, poetic, warm.",
+        "image_prompt": "cinematic photorealistic shot of an open craft cardboard gift box with ripe golden himsagar mangoes and a handwritten greeting letter card on wooden table, warm sunbeam, 8k",
+        "fallback_caption": "মা, এবার আমটা তোমার জন্য। ❤️\n\nকখনো কখনো কথা বলা যায় না… কিন্তু অনুভূতি পাঠানো যায়। চাঁদপুর আমঘর-এর প্রতিটি আমের সাথে আপনি পাঠাতে পারেন একটি ছোট ভালোবাসার চিঠি।\n\n✨ সারা দেশে হোম ডেলিভারি\n✨ ফ্রি পার্সোনাল মেসেজ কার্ড\n\n#চাঁদপুরআমঘর #Probashi #SendLoveHome #MothersLove #BangladeshiMango"
+    },
+    {
+        "type": "children_health",
+        "guidance": "Write a post in Bengali highlighting that our mangoes are 100% formalin-free, chemical-free, and perfectly safe for kids and toddlers. Tone: Caring, trust-building, parenting focused.",
+        "image_prompt": "photorealistic commercial food shot of a cute happy toddler eating sweet juicy mango slice, bright clean natural sunlight, healthy lifestyle, appetizing vibrant yellow mangoes",
+        "fallback_caption": "সন্তানের হাসিমুখ আর নিরাপদ স্বাস্থ্যের চেয়ে দামী আর কী হতে পারে? 🥭👶\n\nচাঁদপুর আমঘর নিশ্চিত করে ১০০% ফরমালিন ও কেমিক্যালমুক্ত গাছপাকা আম। কোনো ভেজাল নেই, কোনো বিষ নেই—শিশুদের জন্য সম্পূর্ণ নিরাপদ ও স্বাস্থ্যসম্মত।\n\nঅর্ডার করতে এখনই ইনবক্সে বার্তা দিন।\n\n#চাঁদপুরআমঘর #HealthyKids #ChemicalFree #OrganicMango #ChildSafety"
+    },
+    {
+        "type": "trending_engaging",
+        "guidance": "Write a trendy, fun, humorous, and relatable Facebook post in Bengali about mango cravings, summer vibes, and the unmatched love Bangladeshis have for ripe sweet mangoes. Include lots of fun emojis and conversational language.",
+        "image_prompt": "creative dynamic food photography of fresh golden amrapali and himsagar mangoes arranged aesthetically with green leaves and water splashes, vibrant pop colors, modern social media visual",
+        "fallback_caption": "আমের মৌসুমে যার মুখে হাসি নেই, সে কি আর খাঁটি বাঙালি? 😂🥭\n\nফ্রিজ খুললেই ঠান্ডা মিষ্টি আমের সুবাস—এই লোভ সামলানো কি মুখের কথা! আপনার প্রতিদিনের ম্যাঙ্গো ক্রেভিং মেটাতে চাঁদপুর আমঘর আছে আপনার পাশে।\n\nকার কার এখনই এক বাটি কাটা আম লাগবে? কমেন্টে জানান! 👇\n\n#চাঁদপুরআমঘর #Trending #MangoLover #SummerVibes #BangladeshiFood"
+    },
+    {
+        "type": "variety_spotlight",
+        "guidance": "Write a premium product showcase post in Bengali introducing our top varieties (Himsagar, Lengra, Amrapali) freshly harvested from Rajshahi/Chapainawabganj orchards. Focus on aroma, sweetness, and garden freshness.",
+        "image_prompt": "commercial luxury fruit photography of freshly harvested ripe himsagar and lengra mangoes in a traditional woven bamboo basket, morning orchard daylight, sharp 8k focus",
+        "fallback_caption": "গাছপাকা হিমসাগর নাকি মিষ্টি সুবাসের আম্রপালি—আপনার পছন্দের আম কোনটি? 🥭✨\n\nসরাসরি বাগান থেকে বাছাই করে প্রিমিয়াম কোয়ালিটির তাজা আম পৌঁছে দেওয়া হচ্ছে আপনার বাসায়। কোনো কেমিক্যাল ছাড়া আসল মিষ্টি স্বাদের নিশ্চয়তা!\n\nসীমিত স্টক—অর্ডার করতে দ্রুত ইনবক্স করুন। 📦\n\n#চাঁদপুরআমঘর #Himsagar #Amrapali #FreshFromGarden #PureTaste"
+    }
 ]
 
-def generate_mango_content():
-    print("🧠 Generating Bengali mango promotional content...")
+def generate_multi_theme_content():
+    # Randomly select a different theme on every run
+    selected_theme = random.choice(CONTENT_THEMES)
+    print(f"🎯 Selected Post Theme: {selected_theme['type']}")
     
     prompt = (
-        "Write an attractive, premium promotional Facebook post in Bengali for 'চাঁদপুর আমঘর' "
-        "(selling 100% organic chemical-free fresh garden mangoes like Himsagar, Lengra, Amrapali). "
-        "Include engaging emojis, a strong call to action to inbox for orders, and relevant hashtags (#চাঁদপুর_আমঘর #FreshMango #Chandpur). "
-        "Also write a 1-sentence prompt in English for a photorealistic food photography AI image showing fresh ripe mangoes. "
-        "Format strictly as JSON with keys 'caption' and 'image_prompt'. Return ONLY raw JSON without markdown code ticks."
+        f"Brand: চাঁদপুর আমঘর (Chandpur Ammghor) - Premium chemical-free mango seller.\n"
+        f"Instruction: {selected_theme['guidance']}\n"
+        f"Also write a 1-sentence photographic English prompt for an AI image generator matching this theme.\n"
+        f"Format strictly as JSON with keys 'caption' and 'image_prompt'. Return ONLY raw JSON without markdown ticks."
     )
     
     caption = ""
     img_prompt = ""
-
+    
     try:
         encoded_prompt = requests.utils.quote(prompt)
         url = f"https://text.pollinations.ai/{encoded_prompt}?json=true"
-        response = requests.get(url, timeout=30)
-        
-        if response.status_code == 200:
-            raw_text = response.text.strip()
-            cleaned = re.sub(r"^```(json)?", "", raw_text, flags=re.IGNORECASE)
+        res = requests.get(url, timeout=30)
+        if res.status_code == 200:
+            raw = res.text.strip()
+            cleaned = re.sub(r"^```(json)?", "", raw, flags=re.IGNORECASE)
             cleaned = re.sub(r"```$", "", cleaned).strip()
             data = json.loads(cleaned)
             if isinstance(data, dict):
                 caption = data.get("caption") or ""
                 img_prompt = data.get("image_prompt") or ""
     except Exception as e:
-        print(f"⚠️ Text AI fallback triggered: {e}")
-
-    # High-converting Bengali copy fallback
+        print(f"⚠️ Text AI fallback: {e}")
+        
     if not caption:
-        caption = (
-            "🥭 চাঁদপুর আমঘর - আসল স্বাদের নিশ্চয়তা! 🥭\n\n"
-            "বাগান থেকে সরাসরি বাছাই করা একদম ফরমালিন ও কেমিক্যালমুক্ত মিষ্টি ও রসালো আম পৌঁছে যাচ্ছে আপনার দরজায়।\n\n"
-            "✨ ১০০% খাঁটি, বিষমুক্ত ও তাজা\n"
-            "🚚 দ্রুত হোম ডেলিভারি\n\n"
-            "অর্ডার করতে এখনই ইনবক্সে মেসেজ দিন অথবা যোগাযোগ করুন!\n\n"
-            "#চাঁদপুর_আমঘর #আম #FreshMango #OrganicFruit #Chandpur"
-        )
-
+        caption = selected_theme["fallback_caption"]
     if not img_prompt:
-        img_prompt = random.choice(PREMIUM_IMAGE_PROMPTS)
-
-    return caption, str(img_prompt)
+        img_prompt = selected_theme["image_prompt"]
+        
+    return caption, img_prompt
 
 def generate_image(prompt):
-    print(f"🎨 Generating ultra-realistic AI image for prompt: {prompt}")
-    
-    # Enhanced quality modifiers for realistic food photography
-    quality_enhancers = "photorealistic, commercial food photography, sharp focus, 8k, cinematic natural lighting, no distortion"
+    print(f"🎨 Generating visual for theme prompt: {prompt}")
+    quality_enhancers = "photorealistic, commercial food photography, 8k, sharp focus, vibrant natural colors, cinematic lighting, no watermark"
     full_prompt = f"{prompt}, {quality_enhancers}"
-    
-    encoded_img_prompt = requests.utils.quote(full_prompt)
+    encoded = requests.utils.quote(full_prompt)
     seed = random.randint(1000, 999999)
     
-    # Uses the FLUX model endpoint for superior photorealism
-    img_url = f"https://image.pollinations.ai/prompt/{encoded_img_prompt}?width=1080&height=1080&model=flux&nologo=true&seed={seed}"
-    
+    img_url = f"https://image.pollinations.ai/prompt/{encoded}?width=1080&height=1350&model=flux&nologo=true&seed={seed}"
     res = requests.get(img_url, timeout=90)
-    img_path = "mango_post.jpg"
-    with open(img_path, "wb") as f:
+    
+    path = "mango_post.jpg"
+    with open(path, "wb") as f:
         f.write(res.content)
-        
-    print("✅ High-definition image generated and saved.")
-    return img_path
+    return path
 
 def post_to_facebook(image_path, caption):
-    print("🚀 Uploading to Facebook Page...")
+    print("🚀 Publishing diverse post to Facebook...")
     url = f"https://graph.facebook.com/v19.0/{FB_PAGE_ID}/photos"
-    
-    with open(image_path, "rb") as img_file:
+    with open(image_path, "rb") as img:
         payload = {
             "caption": caption,
             "access_token": FB_PAGE_ACCESS_TOKEN
         }
-        files = {
-            "source": img_file
-        }
+        files = {"source": img}
         response = requests.post(url, data=payload, files=files, timeout=45)
         
     result = response.json()
     if "id" in result:
-        print(f"🎉 Post successfully published! Post ID: {result['id']}")
+        print(f"🎉 Post successfully published! ID: {result['id']}")
     else:
-        print(f"❌ Error publishing to Facebook: {json.dumps(result, indent=2)}")
-        raise Exception("Facebook posting failed")
+        print(f"❌ Error: {json.dumps(result, indent=2)}")
+        raise Exception("Publishing failed")
 
 def main():
     if not FB_PAGE_ID or not FB_PAGE_ACCESS_TOKEN:
-        print("❌ Missing Facebook credentials in environment.")
+        print("❌ Missing credentials.")
         return
-
-    caption, img_prompt = generate_mango_content()
-    image_file = generate_image(img_prompt)
-    post_to_facebook(image_file, caption)
+    caption, img_prompt = generate_multi_theme_content()
+    img_file = generate_image(img_prompt)
+    post_to_facebook(img_file, caption)
 
 if __name__ == "__main__":
     main()
