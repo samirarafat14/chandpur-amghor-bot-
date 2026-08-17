@@ -77,7 +77,7 @@ def generate_image(prompt):
     encoded = requests.utils.quote(full_prompt)
     seed = random.randint(1000, 999999)
     
-    img_url = f"https://image.pollinations.ai/prompt/{encoded}?width=1080&height=1350&model=flux&nologo=true&seed={seed}"
+    img_url = f"https://image.pollinations.ai/prompt/{encoded}?width=1080&height=1920&model=flux&nologo=true&seed={seed}"
     res = requests.get(img_url, timeout=90)
     
     path = "mango_post.jpg"
@@ -100,23 +100,43 @@ def post_to_facebook_feed(image_path, caption):
     if "id" in result:
         print(f"🎉 Feed Post successfully published! ID: {result['id']}")
     else:
-        print(f"⚠️ Feed publishing response: {json.dumps(result, indent=2)}")
+        print(f"⚠️ Feed response: {json.dumps(result, indent=2)}")
 
 def post_to_facebook_story(image_path):
-    print("📱 Publishing photo to Facebook Page Story...")
-    url = f"https://graph.facebook.com/v19.0/{FB_PAGE_ID}/photo_stories"
-    with open(image_path, "rb") as img:
-        payload = {
-            "access_token": FB_PAGE_ACCESS_TOKEN
-        }
-        files = {"source": img}
-        response = requests.post(url, data=payload, files=files, timeout=45)
+    print("📱 Publishing photo to Facebook Page Story via Upload Session...")
+    
+    # Step 1: Initialize Story Upload Session
+    session_url = f"https://graph.facebook.com/v19.0/{FB_PAGE_ID}/photo_stories"
+    params = {"access_token": FB_PAGE_ACCESS_TOKEN}
+    
+    try:
+        session_res = requests.post(session_url, params=params, timeout=30)
+        session_data = session_res.json()
         
-    result = response.json()
-    if "id" in result or "post_id" in result:
-        print(f"🎉 Story successfully published! ID: {result.get('id', result.get('post_id'))}")
-    else:
-        print(f"⚠️ Story publishing response (check page story permissions if not enabled): {json.dumps(result, indent=2)}")
+        upload_url = session_data.get("upload_url")
+        if not upload_url:
+            print(f"⚠️ Could not start Story session: {session_data}")
+            return
+
+        # Step 2: Upload Binary Image to Session URL
+        with open(image_path, "rb") as img_file:
+            img_bytes = img_file.read()
+            
+        headers = {
+            "Authorization": f"OAuth {FB_PAGE_ACCESS_TOKEN}",
+            "file_offset": "0"
+        }
+        
+        upload_res = requests.post(upload_url, headers=headers, data=img_bytes, timeout=45)
+        upload_data = upload_res.json()
+        
+        if upload_data.get("success"):
+            print(f"🎉 Story successfully published!")
+        else:
+            print(f"⚠️ Story upload response: {json.dumps(upload_data, indent=2)}")
+            
+    except Exception as e:
+        print(f"⚠️ Story posting exception: {e}")
 
 def main():
     if not FB_PAGE_ID or not FB_PAGE_ACCESS_TOKEN:
@@ -125,10 +145,10 @@ def main():
     caption, img_prompt = generate_multi_theme_content()
     img_file = generate_image(img_prompt)
     
-    # 1. Post to Feed (Image + Caption)
+    # 1. Publish to Feed (Post)
     post_to_facebook_feed(img_file, caption)
     
-    # 2. Post to Page Story (Full visual format)
+    # 2. Publish to Page Story
     post_to_facebook_story(img_file)
 
 if __name__ == "__main__":
