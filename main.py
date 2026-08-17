@@ -8,11 +8,12 @@ import requests
 FB_PAGE_ID = os.environ.get("FB_PAGE_ID")
 FB_PAGE_ACCESS_TOKEN = os.environ.get("FB_PAGE_ACCESS_TOKEN")
 
-DEFAULT_IMAGE_PROMPTS = [
-    "close up of fresh ripe sweet yellow himsagar mangoes in a wooden basket on a rustic table 4k high quality photo",
-    "fresh organic amrapali mangoes hanging on a tree branch morning sunlight crisp photography",
-    "fresh ripe lengra mangoes sliced on a wooden board juicy and delicious professional food photography",
-    "freshly harvested sweet green and yellow fazli mangoes in bamboo basket aesthetic lighting 4k"
+# Ultra-realistic commercial photography prompts for mangoes
+PREMIUM_IMAGE_PROMPTS = [
+    "commercial food photography of freshly harvested ripe golden Himsagar mangoes with water droplets in a rustic handmade bamboo basket, morning sunbeam, depth of field, 8k resolution, authentic Bangladeshi orchard",
+    "close up shot of a perfectly sliced juicy yellow mango on a clean wooden cutting board, vivid natural colors, appetizing texture, soft studio lighting, high-end food magazine style",
+    "a pile of fresh organic Amrapali and Lengra mangoes on green leaves, natural daylight, photorealistic, sharp focus, vibrant golden-yellow and green hues",
+    "freshly picked organic mangoes hanging on a lush tree branch with leaves and soft golden hour sunlight, hyperrealistic, 4k macro shot"
 ]
 
 def generate_mango_content():
@@ -22,7 +23,7 @@ def generate_mango_content():
         "Write an attractive, premium promotional Facebook post in Bengali for 'চাঁদপুর আমঘর' "
         "(selling 100% organic chemical-free fresh garden mangoes like Himsagar, Lengra, Amrapali). "
         "Include engaging emojis, a strong call to action to inbox for orders, and relevant hashtags (#চাঁদপুর_আমঘর #FreshMango #Chandpur). "
-        "Also write a 1-sentence prompt in English for an AI image generator showing ripe fresh mangoes. "
+        "Also write a 1-sentence prompt in English for a photorealistic food photography AI image showing fresh ripe mangoes. "
         "Format strictly as JSON with keys 'caption' and 'image_prompt'. Return ONLY raw JSON without markdown code ticks."
     )
     
@@ -45,34 +46,41 @@ def generate_mango_content():
     except Exception as e:
         print(f"⚠️ Text AI fallback triggered: {e}")
 
-    # Fallback caption if network delays
+    # High-converting Bengali copy fallback
     if not caption:
         caption = (
             "🥭 চাঁদপুর আমঘর - আসল স্বাদের নিশ্চয়তা! 🥭\n\n"
             "বাগান থেকে সরাসরি বাছাই করা একদম ফরমালিন ও কেমিক্যালমুক্ত মিষ্টি ও রসালো আম পৌঁছে যাচ্ছে আপনার দরজায়।\n\n"
-            "✨ ১০০% খাঁটি ও তাজা\n"
+            "✨ ১০০% খাঁটি, বিষমুক্ত ও তাজা\n"
             "🚚 দ্রুত হোম ডেলিভারি\n\n"
             "অর্ডার করতে এখনই ইনবক্সে মেসেজ দিন অথবা যোগাযোগ করুন!\n\n"
             "#চাঁদপুর_আমঘর #আম #FreshMango #OrganicFruit #Chandpur"
         )
 
     if not img_prompt:
-        img_prompt = random.choice(DEFAULT_IMAGE_PROMPTS)
+        img_prompt = random.choice(PREMIUM_IMAGE_PROMPTS)
 
     return caption, str(img_prompt)
 
 def generate_image(prompt):
-    print(f"🎨 Generating unique AI image for prompt: {prompt}")
-    encoded_img_prompt = requests.utils.quote(prompt)
-    seed = random.randint(1000, 999999)
-    img_url = f"https://image.pollinations.ai/prompt/{encoded_img_prompt}?width=1080&height=1080&nologo=true&seed={seed}"
+    print(f"🎨 Generating ultra-realistic AI image for prompt: {prompt}")
     
-    res = requests.get(img_url, timeout=60)
+    # Enhanced quality modifiers for realistic food photography
+    quality_enhancers = "photorealistic, commercial food photography, sharp focus, 8k, cinematic natural lighting, no distortion"
+    full_prompt = f"{prompt}, {quality_enhancers}"
+    
+    encoded_img_prompt = requests.utils.quote(full_prompt)
+    seed = random.randint(1000, 999999)
+    
+    # Uses the FLUX model endpoint for superior photorealism
+    img_url = f"https://image.pollinations.ai/prompt/{encoded_img_prompt}?width=1080&height=1080&model=flux&nologo=true&seed={seed}"
+    
+    res = requests.get(img_url, timeout=90)
     img_path = "mango_post.jpg"
     with open(img_path, "wb") as f:
         f.write(res.content)
         
-    print("✅ Image generated and saved successfully.")
+    print("✅ High-definition image generated and saved.")
     return img_path
 
 def post_to_facebook(image_path, caption):
@@ -87,7 +95,7 @@ def post_to_facebook(image_path, caption):
         files = {
             "source": img_file
         }
-        response = requests.post(url, data=payload, files=files, timeout=40)
+        response = requests.post(url, data=payload, files=files, timeout=45)
         
     result = response.json()
     if "id" in result:
