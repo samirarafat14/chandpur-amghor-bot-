@@ -1,72 +1,109 @@
 import os
+import re
+import json
 import random
-import urllib.parse
 import requests
-import google.generativeai as genai
 
-# Read secrets from GitHub Actions environment
-FB_PAGE_ACCESS_TOKEN = os.environ.get("FB_PAGE_ACCESS_TOKEN")
+# Facebook Credentials from GitHub Secrets
 FB_PAGE_ID = os.environ.get("FB_PAGE_ID")
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+FB_PAGE_ACCESS_TOKEN = os.environ.get("FB_PAGE_ACCESS_TOKEN")
 
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
+DEFAULT_IMAGE_PROMPTS = [
+    "close up of fresh ripe sweet yellow himsagar mangoes in a wooden basket on a rustic table 4k high quality photo",
+    "fresh organic amrapali mangoes hanging on a tree branch morning sunlight crisp photography",
+    "fresh ripe lengra mangoes sliced on a wooden board juicy and delicious professional food photography",
+    "freshly harvested sweet green and yellow fazli mangoes in bamboo basket aesthetic lighting 4k"
+]
 
-def generate_bengali_post_text():
-    print("🧠 Generating Bengali text with Gemini...")
+def generate_mango_content():
+    print("🧠 Generating Bengali mango promotional content...")
+    
+    prompt = (
+        "Write an attractive, premium promotional Facebook post in Bengali for 'চাঁদপুর আমঘর' "
+        "(selling 100% organic chemical-free fresh garden mangoes like Himsagar, Lengra, Amrapali). "
+        "Include engaging emojis, a strong call to action to inbox for orders, and relevant hashtags (#চাঁদপুর_আমঘর #FreshMango #Chandpur). "
+        "Also write a 1-sentence prompt in English for an AI image generator showing ripe fresh mangoes. "
+        "Format strictly as JSON with keys 'caption' and 'image_prompt'. Return ONLY raw JSON without markdown code ticks."
+    )
+    
+    caption = ""
+    img_prompt = ""
+
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        prompt = (
-            "চাঁদপুর আমঘর এর জন্য ফ্রেশ আম, হিমসাগর, আম্রপালি, এবং হাড়িভাঙ্গা আমের অফার নিয়ে "
-            "একটি আকর্ষণীয় ছোট ফেসবুক ক্যাপশন বাংলায় লিখে দাও। পোস্টের শেষে #চাঁদপুরআমঘর এবং #তাজাআম হ্যাশট্যাগ ব্যবহার কর।"
-        )
-        response = model.generate_content(prompt)
-        return response.text.strip()
+        encoded_prompt = requests.utils.quote(prompt)
+        url = f"https://text.pollinations.ai/{encoded_prompt}?json=true"
+        response = requests.get(url, timeout=30)
+        
+        if response.status_code == 200:
+            raw_text = response.text.strip()
+            cleaned = re.sub(r"^```(json)?", "", raw_text, flags=re.IGNORECASE)
+            cleaned = re.sub(r"```$", "", cleaned).strip()
+            data = json.loads(cleaned)
+            if isinstance(data, dict):
+                caption = data.get("caption") or ""
+                img_prompt = data.get("image_prompt") or ""
     except Exception as e:
-        print(f"Gemini generation fallback triggered: {e}")
-        return (
-            "🥭 চাঁদপুর আমঘর - আসল স্বাদের নিশ্চয়তা! 🥭\n\n"
-            "বাগান থেকে সরাসরি বাছাই করা একদম ফরমালিন ও কেমিক্যালমুক্ত মিষ্টি ও রসালো আম পৌঁছে যাচ্ছে আপনার দরজায়।\n\n"
-            "অর্ডার করতে এখনই ইনবক্সে মেসেজ দিন।\n\n#চাঁদপুরআমঘর #তাজাআম"
+        print(f"⚠️ Text AI fallback triggered: {e}")
+
+    # Fallback caption if network delays
+    if not caption:
+        caption = (
+            "🥭 চাঁদপুর আমঘর - আসল স্বাদের নিশ্চয়তা! 🥭\n\n"
+            "বাগান থেকে সরাসরি বাছাই করা একদম ফরমালিন ও কেমিক্যালমুক্ত মিষ্টি ও রসালো আম পৌঁছে যাচ্ছে আপনার দরজায়।\n\n"
+            "✨ ১০০% খাঁটি ও তাজা\n"
+            "🚚 দ্রুত হোম ডেলিভারি\n\n"
+            "অর্ডার করতে এখনই ইনবক্সে মেসেজ দিন অথবা যোগাযোগ করুন!\n\n"
+            "#চাঁদপুর_আমঘর #আম #FreshMango #OrganicFruit #Chandpur"
         )
 
-def get_ai_image_url():
-    print("🎨 Generating dynamic AI image URL...")
-    # List of varied prompts so every post gets a different AI photo
-    prompts = [
-        "fresh ripe sweet yellow mangoes in a traditional bamboo basket, natural sunlight, professional food photography, 4k",
-        "delicious sliced yellow himsagar mangoes on a rustic wooden table, bright daylight, high resolution",
-        "organic amrapali mangoes hanging on tree branch with green leaves, sunny orchard, crisp photography",
-        "a wooden crate full of fresh golden mangoes in an open village market, ultra realistic",
-        "freshly harvested sweet green and yellow fazli mangoes close up shot, vibrant colors, aesthetic lighting"
-    ]
-    selected_prompt = random.choice(prompts)
-    encoded_prompt = urllib.parse.quote(selected_prompt)
-    seed = random.randint(1, 999999)
-    # Free high-resolution AI image generation endpoint
-    return f"https://image.pollinations.ai/prompt/{encoded_prompt}?seed={seed}&width=1080&height=1080&nologo=true"
+    if not img_prompt:
+        img_prompt = random.choice(DEFAULT_IMAGE_PROMPTS)
 
-def publish_to_facebook(image_url, message_text):
-    print("🚀 Publishing to Facebook Page...")
+    return caption, str(img_prompt)
+
+def generate_image(prompt):
+    print(f"🎨 Generating unique AI image for prompt: {prompt}")
+    encoded_img_prompt = requests.utils.quote(prompt)
+    seed = random.randint(1000, 999999)
+    img_url = f"https://image.pollinations.ai/prompt/{encoded_img_prompt}?width=1080&height=1080&nologo=true&seed={seed}"
+    
+    res = requests.get(img_url, timeout=60)
+    img_path = "mango_post.jpg"
+    with open(img_path, "wb") as f:
+        f.write(res.content)
+        
+    print("✅ Image generated and saved successfully.")
+    return img_path
+
+def post_to_facebook(image_path, caption):
+    print("🚀 Uploading to Facebook Page...")
     url = f"https://graph.facebook.com/v19.0/{FB_PAGE_ID}/photos"
-    payload = {
-        "url": image_url,
-        "caption": message_text,
-        "access_token": FB_PAGE_ACCESS_TOKEN
-    }
-    response = requests.post(url, data=payload, timeout=60)
+    
+    with open(image_path, "rb") as img_file:
+        payload = {
+            "caption": caption,
+            "access_token": FB_PAGE_ACCESS_TOKEN
+        }
+        files = {
+            "source": img_file
+        }
+        response = requests.post(url, data=payload, files=files, timeout=40)
+        
     result = response.json()
-    if response.status_code == 200 and "id" in result:
-        print(f"🎉 Successfully posted! Post ID: {result.get('id')}")
+    if "id" in result:
+        print(f"🎉 Post successfully published! Post ID: {result['id']}")
     else:
-        print(f"❌ Failed to publish: {result}")
-        raise Exception("Facebook publishing failed")
+        print(f"❌ Error publishing to Facebook: {json.dumps(result, indent=2)}")
+        raise Exception("Facebook posting failed")
+
+def main():
+    if not FB_PAGE_ID or not FB_PAGE_ACCESS_TOKEN:
+        print("❌ Missing Facebook credentials in environment.")
+        return
+
+    caption, img_prompt = generate_mango_content()
+    image_file = generate_image(img_prompt)
+    post_to_facebook(image_file, caption)
 
 if __name__ == "__main__":
-    if not FB_PAGE_ID or not FB_PAGE_ACCESS_TOKEN:
-        print("❌ Missing Facebook credentials!")
-    else:
-        caption = generate_bengali_post_text()
-        img_url = get_ai_image_url()
-        publish_to_facebook(img_url, caption)
-   
+    main()
