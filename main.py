@@ -18,7 +18,7 @@ CONTENT_THEMES = [
         "type": "children_health",
         "guidance": "Write a post in Bengali highlighting that our mangoes are 100% formalin-free, chemical-free, and perfectly safe for kids and toddlers. Tone: Caring, trust-building, parenting focused.",
         "image_prompt": "photorealistic commercial food shot of a cute happy toddler eating sweet juicy mango slice, bright clean natural sunlight, healthy lifestyle, appetizing vibrant yellow mangoes",
-        "fallback_caption": "সন্তানের হাসিমুখ আর নিরাপদ স্বাস্থ্যের চেয়ে দামী আর কী হতে পারে? 🥭👶\n\nচাঁদপুর আমঘর নিশ্চিত করে ১০০% ফরমালিন ও কেমিক্যালমুক্ত গাছপাকা আম। কোনো ভেজাল নেই, কোনো বিষ নেই—শিশুদের জন্য সম্পূর্ণ নিরাপদ ও স্বাস্থ্যসম্মত।\n\nঅর্ডার করতে এখনই ইনবক্সে বার্তা দিন।\n\n#চাঁদপুরআমঘর #HealthyKids #ChemicalFree #OrganicMango #ChildSafety"
+        "fallback_caption": "সন্তানের হাসিমুখ আর নিরাপদ স্বাস্থ্যের চেয়ে দামী আর কী হতে পারে? 🥭👶\n\nচাঁদপুর আমঘর নিশ্চিত করে ১০০% ফরমালিন ও কেমিক্যালমুক্ত গাছপাকা আম। কোনো ভেজাল নেই, কোনো বিষ নেই—শিশুদের জন্য সম্পূর্ণ নিরাপদ ও স্বাস্থ্যসম্মত।\n\nঅর্ডার করতে এখনই ইনবক্সে বার্তা দিন।\n\n#চাঁদপুরআমঘর #HealthyKids #ChemicalFree #OrganicMango #ChildSafety"
     },
     {
         "type": "trending_engaging",
@@ -30,17 +30,38 @@ CONTENT_THEMES = [
         "type": "variety_spotlight",
         "guidance": "Write a premium product showcase post in Bengali introducing our top varieties (Himsagar, Lengra, Amrapali) freshly harvested from Rajshahi/Chapainawabganj orchards. Focus on aroma, sweetness, and garden freshness.",
         "image_prompt": "commercial luxury fruit photography of freshly harvested ripe himsagar and lengra mangoes in a traditional woven bamboo basket, morning orchard daylight, sharp 8k focus",
-        "fallback_caption": "গাছপাকা হিমসাগর নাকি মিষ্টি সুবাসের আম্রপালি—আপনার পছন্দের আম কোনটি? 🥭✨\n\nসরাসরি বাগান থেকে বাছাই করে প্রিমিয়াম কোয়ালিটির তাজা আম পৌঁছে দেওয়া হচ্ছে আপনার বাসায়। কোনো কেমিক্যাল ছাড়া আসল মিষ্টি স্বাদের নিশ্চয়তা!\n\nসীমিত স্টক—অর্ডার করতে দ্রুত ইনবক্স করুন। 📦\n\n#চাঁদপুরআমঘর #Himsagar #Amrapali #FreshFromGarden #PureTaste"
+        "fallback_caption": "গাছপাকা হিমসাগর নাকি মিষ্টি সুবাসের আম্রপালি—আপনার পছন্দের আম কোনটি? 🥭✨\n\nসরাসরি বাগান থেকে বাছাই করে প্রিমিয়াম কোয়ালিটির তাজা আম পৌঁছে দেওয়া হচ্ছে আপনার বাসায়। কোনো কেমিক্যাল ছাড়া আসল মিষ্টি স্বাদের নিশ্চয়তা!\n\nসীমিত স্টক—অর্ডার করতে দ্রুত ইনবক্স করুন। 📦\n\n#চাঁদপুরআমঘর #Himsagar #Amrapali #FreshFromGarden #PureTaste"
     }
 ]
+
+def extract_json_safely(raw_text):
+    """Safely extracts JSON even if surrounded by markdown or extra comments."""
+    match = re.search(r"\{[\s\S]*\}", raw_text)
+    if match:
+        return json.loads(match.group(0))
+    return json.loads(raw_text)
 
 def generate_multi_theme_content():
     selected_theme = random.choice(CONTENT_THEMES)
     print(f"🎯 Selected Post Theme: {selected_theme['type']}")
     
+    # 1. Random seed prevents GitHub Actions from getting cached responses
+    random_seed = random.randint(1, 99999999)
+    
+    # 2. Dynamic angles ensure fresh phrasing every run
+    angles = [
+        "Focus heavily on the mouth-watering sweet taste and royal aroma.",
+        "Focus on fast, reliable, safe home delivery straight to the door.",
+        "Focus on authentic Rajshahi orchard freshness with 0% chemicals.",
+        "Use an engaging conversational question to get users commenting."
+    ]
+    selected_angle = random.choice(angles)
+    
     prompt = (
         f"Brand: চাঁদপুর আমঘর (Chandpur Ammghor) - Premium chemical-free mango seller.\n"
         f"Instruction: {selected_theme['guidance']}\n"
+        f"Creative Focus: {selected_angle}\n"
+        f"Write a fresh, brand new variation in Bengali.\n"
         f"Also write a 1-sentence photographic English prompt for an AI image generator matching this theme.\n"
         f"Format strictly as JSON with keys 'caption' and 'image_prompt'. Return ONLY raw JSON without markdown ticks."
     )
@@ -50,22 +71,23 @@ def generate_multi_theme_content():
     
     try:
         encoded_prompt = requests.utils.quote(prompt)
-        url = f"https://text.pollinations.ai/{encoded_prompt}?json=true"
+        # Added &seed and &cache=false to force fresh outputs
+        url = f"https://text.pollinations.ai/{encoded_prompt}?json=true&seed={random_seed}&cache=false"
         res = requests.get(url, timeout=30)
+        
         if res.status_code == 200:
-            raw = res.text.strip()
-            cleaned = re.sub(r"^```(json)?", "", raw, flags=re.IGNORECASE)
-            cleaned = re.sub(r"```$", "", cleaned).strip()
-            data = json.loads(cleaned)
+            data = extract_json_safely(res.text)
             if isinstance(data, dict):
-                caption = data.get("caption") or ""
-                img_prompt = data.get("image_prompt") or ""
+                caption = data.get("caption", "").strip()
+                img_prompt = data.get("image_prompt", "").strip()
     except Exception as e:
-        print(f"⚠️ Text AI fallback: {e}")
+        print(f"⚠️ Text AI generation error: {e}")
         
     if not caption:
+        print("⚠️ AI generation skipped; using fallback caption.")
         caption = selected_theme["fallback_caption"]
     if not img_prompt:
+        print("⚠️ AI generation skipped; using fallback image prompt.")
         img_prompt = selected_theme["image_prompt"]
         
     return caption, img_prompt
@@ -133,12 +155,10 @@ def main():
     caption, img_prompt = generate_multi_theme_content()
     img_file = generate_image(img_prompt)
     
-    # 1. Post to Feed (Returns the created Photo ID)
     photo_id = post_to_facebook_feed(img_file, caption)
-    
-    # 2. Automatically post the exact same image to Story
     if photo_id:
         post_to_facebook_story(photo_id)
 
 if __name__ == "__main__":
     main()
+   
